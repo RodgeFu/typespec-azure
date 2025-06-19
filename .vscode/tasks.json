@@ -102,6 +102,24 @@
         "showReuseMessage": false,
         "clear": true
       }
+    },
+    {
+      "label": "watch-typespec-azure-vscode-extension",
+      "type": "npm",
+      "script": "watch:esbuild",
+      "isBackground": true,      
+      "presentation": {
+        "group": "watch",
+        "reveal": "never"
+      },
+      "problemMatcher": "$esbuild-watch",
+      "path": "${workspaceFolder}/packages/typespec-azure-vscode",
+      "options": {
+        "cwd": "${workspaceFolder}/packages/typespec-azure-vscode",
+        "env": {
+          "NODE_ENV": "development"
+        }
+      }
     }
   ]
 }

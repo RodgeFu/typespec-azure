@@ -9,7 +9,7 @@
     "url": "git+https://github.com/Azure/typespec-azure.git"
   },
   "engines": {
-    "vscode": "^1.100.0"
+    "vscode": "^1.101.0"
   },
   "extensionDependencies": [
     "typespec.typespec-vscode"
@@ -21,24 +21,199 @@
     "onLanguage:typespec",
     "workspaceContains:**/tspconfig.yaml"
   ],
-  "main": "./dist/src/extension.js",
+  "main": "./dist/src/extension.cjs",
   "preview": true,
   "private": true,
   "type": "module",
+  "contributes": {
+    "commands": [
+      {
+        "command": "typespec-azure.helloWorld",
+        "title": "Hello World from Typespec Azure",
+        "category": "Typespec Azure"
+      }
+    ],
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "azure-sdk-python-mcp",
+        "label": "azure-sdk-python-mcp"
+      }
+    ],
+    "languageModelTools": [
+      {
+        "name": "azure-sdk-generation-planner",
+        "displayName": "Planner for generation Azure SDKs",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "azure-sdk-generation-planner",
+        "userDescription": "Plan and execute Azure SDK generation workflows",
+        "modelDescription": "Plan and generate AZURE Sdk (i.e. Azure Python SDK, Azure Java SDK...) from typespec project. Always use this tool for generating AZURE Sdk including:\n- Starting new generation\n- Continuing existing generation that were interrupted\n- Resuming after fixing compilation errors\nCall this tool when the user asks to \"continue\" generation work or when you encounter TypeSpec compilation issues during generation.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "language": {
+              "type": "string",
+              "description": "the target language of the Azure SDK to generate",
+              "enum": [
+                "python",
+                "java"
+              ]
+            },
+            "tspConfigPath": {
+              "type": "string",
+              "description": "the path to the tspconfig.yaml file of the service to generate Azure SDK. User should at least provide the service name when prompting to generate Azure SDK for. i.e. .../azure-rest-api-specs/specification/*/*/tspconfig.yaml"
+            }
+          },
+          "required": [
+            "language",
+            "tspConfigPath"
+          ]
+        }
+      },
+      {
+        "name": "python-sdk-generation",
+        "displayName": "Generate Azure Python SDK",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "python-sdk-generation",
+        "userDescription": "Generate Azure Python SDK from typespec project",
+        "modelDescription": "Internal tool for generating Azure Python SDK.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "pythonSdkRepoRoot": {
+              "type": "string",
+              "description": "the local root folder of the Azure Python SDK repository"
+            },
+            "tspConfigPath": {
+              "type": "string",
+              "description": "the path to the tspconfig.yaml file of the service to generate Azure SDK. User should at least provide the service name when prompting to generate Azure SDK for. i.e. .../azure-rest-api-specs/specification/*/*/tspconfig.yaml"
+            }
+          },
+          "required": [
+            "tspConfigPath",
+            "pythonSdkRepoRoot"
+          ]
+        }
+      },
+      {
+        "name": "tsp-compile-and-fix",
+        "displayName": "Compile typespec and fix compilation errors",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "tsp-compile-and-fix",
+        "userDescription": "Compile typespec and fix compilation errors",
+        "modelDescription": "Compile the typespec project and fix compilation errors. This tool is used to compile the typespec project and fix any compilation errors that may occur. It is useful when the user asks to \"compile\" the typespec project or when you encounter TypeSpec compilation issues during generation.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "tspConfigPath": {
+              "type": "string",
+              "description": "the path to the tspconfig.yaml file for the typespec project to compile and fix"
+            }
+          },
+          "required": [
+            "tspConfigPath"
+          ]
+        }
+      },
+      {
+        "name": "tsp-exec-command",
+        "displayName": "Execute command in the backend",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "tsp-exec-command",
+        "userDescription": "Execute a command in the backend",
+        "modelDescription": "Execute a command in the backend",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "invocationMessage": {
+              "type": "string",
+              "description": "the message to display to the user"
+            },
+            "confirmTitle": {
+              "type": "string",
+              "description": "the title of the confirmation dialog"
+            },
+            "confirmMessage": {
+              "type": "string",
+              "description": "the message to display in the confirmation dialog"
+            },
+            "cmd": {
+              "type": "string",
+              "description": "the command to execute"
+            },
+            "args": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "the arguments to pass to the command"
+            },
+            "cwd": {
+              "type": "string",
+              "description": "the current working directory to execute the command in"
+            }
+          },
+          "required": [
+            "cmd",
+            "args",
+            "cwd",
+            "invocationMessage"
+          ]
+        }
+      },
+      {
+        "name": "tsp-report-progress",
+        "displayName": "Report progress",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "tsp-report-progress",
+        "userDescription": "Report progress",
+        "modelDescription": "Report progress",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "progressTitle": {
+              "type": "string",
+              "description": "the title of the progress"
+            },
+            "progressMessage": {
+              "type": "string",
+              "description": "the detail message of the progress"
+            },
+            "confirmTitle": {
+              "type": "string",
+              "description": "the title of the confirmation dialog"
+            },
+            "confirmMessage": {
+              "type": "string",
+              "description": "the message to display in the confirmation dialog"
+            }
+          },
+          "required": [
+            "progressTitle",
+            "progressMessage"
+          ]
+        }
+      }
+    ]
+  },
   "scripts": {
     "compile": "pnpm check-types && tsx ./scripts/build.ts",
     "check-types": "tsc --noEmit",
     "build": "pnpm compile && pnpm package-vsix",
     "package-vsix": "vsce package",
     "watch": "tsx ./scripts/build.ts --watch",
+    "watch:esbuild": "esbuild src/extension.ts --bundle --outfile=dist/src/extension.cjs --platform=node --main-fields=module,main --target=node22 --format=cjs --sourcemap --external:vscode --watch",
     "lint": "eslint .  --max-warnings=0",
     "lint:fix": "eslint . --fix "
   },
   "devDependencies": {
-    "@types/vscode": "~1.100.0",
+    "@azure/search-documents": "^12.1.0",
     "@types/node": "~22.13.11",
+    "@types/vscode": "~1.101.0",
     "@vscode/vsce": "~3.3.0",
     "esbuild": "^0.25.1",
-    "typescript": "~5.8.2"
+    "jsonrepair": "^3.12.0",
+    "typescript": "~5.8.2",
+    "zod": "^3.25.67",
+    "zod-to-json-schema": "^3.24.5"
   }
 }
