@@ -3,8 +3,13 @@ import { readdir, readFile, stat, writeFile } from "fs/promises";
 import { jsonrepair } from "jsonrepair";
 import { join } from "path";
 import vscode, { Uri } from "vscode";
+import pkgJson from "../package.json" with { type: "json" };
 import logger from "./logger/logger.js";
 import { isUrl } from "./path-utils.js";
+
+export function getFullMcpServerId(id: string): string {
+  return `${pkgJson.publisher}.${pkgJson.name}/${id}`;
+}
 
 export async function tryRepairAndParseJsonFromFile<T>(filePath: string): Promise<T | undefined> {
   const str = await tryReadFile(filePath);

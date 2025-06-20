@@ -70,12 +70,12 @@
         }
       },
       {
-        "name": "python-sdk-generation",
-        "displayName": "Generate Azure Python SDK",
+        "name": "python-sdk-adapter",
+        "displayName": "Adapter to Azure Python SDK specific requirements and detail generation instructions",
         "canBeReferencedInPrompt": true,
-        "toolReferenceName": "python-sdk-generation",
-        "userDescription": "Generate Azure Python SDK from typespec project",
-        "modelDescription": "Internal tool for generating Azure Python SDK.",
+        "toolReferenceName": "python-sdk-adapter",
+        "userDescription": "Adapter to Azure Python SDK specific requirements and detail generation instructions",
+        "modelDescription": "**Internal** tool to be triggered by the planner for sdk generation planner",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -190,6 +190,37 @@
           "required": [
             "progressTitle",
             "progressMessage"
+          ]
+        }
+      },
+      {
+        "name": "mcp-server-action",
+        "displayName": "MCP Server Action",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "mcp-server-action",
+        "userDescription": "Perform an action on the MCP server",
+        "modelDescription": "Perform an action on the MCP server",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "description": "the action to perform on the MCP server",
+              "enum": [
+                "start",
+                "stop",
+                "restart",
+                "resetCaches"
+              ]
+            },
+            "mcpServerId": {
+              "type": "string",
+              "description": "the ID of the MCP server to perform the action on"
+            }
+          },
+          "required": [
+            "action",
+            "mcpServerId"
           ]
         }
       }

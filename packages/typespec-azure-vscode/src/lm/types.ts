@@ -5,7 +5,8 @@ export enum LmToolName {
   tsp_compile_and_fix = "tsp-compile-and-fix",
   exec_command = "tsp-exec-command",
   report_progress = "tsp-report-progress",
-  python_sdk_generation = "python-sdk-generation",
+  python_sdk_adapter = "python-sdk-adapter",
+  mcp_server_action = "mcp-server-action",
 }
 
 export interface CodeFileInfo {

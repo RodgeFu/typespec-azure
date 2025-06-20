@@ -1,6 +1,7 @@
 import { CancellationToken, LanguageModelToolInvocationOptions, lm } from "vscode";
 import logger from "../../logger/logger.js";
 import { LmToolName } from "../types.js";
+import { AzureSdkPythonMcpId } from "./python-sdk-adapter.js";
 import { ToolBase, ToolPrepareMessage } from "./tool-base.js";
 
 interface SdkInfo {
@@ -9,7 +10,8 @@ interface SdkInfo {
   // instructionType: "url" | "text" | "file" | "mcp";
   // instruction: string;
   // // preRequisites needed before going to the instruction
-  // preRequisites: string[];
+  preRequisites: string[];
+  mcpId?: string; // Optional MCP ID if needed
 }
 
 interface SdkGenerationContext {
@@ -31,9 +33,10 @@ function getSdkGenerationContext(input: SdkGenerationPlannerToolParameters): Sdk
       // instructionType: "url",
       // instruction:
       //   "https://github.com/Azure/azure-sdk-for-python/blob/main/.github/copilot-instructions.md",
-      // preRequisites: [
-      //   "Verify whether uv (https://docs.astral.sh/uv/) is installed properly. If not, work with user to install it.",
-      // ],
+      preRequisites: [
+        "Verify whether uv (https://docs.astral.sh/uv/) is installed properly. If not, work with user to install it.",
+      ],
+      mcpId: AzureSdkPythonMcpId,
     },
   };
   const info = infoMap[input.language.toLowerCase()];
@@ -46,24 +49,6 @@ function getSdkGenerationContext(input: SdkGenerationPlannerToolParameters): Sdk
     sdkInfo: info,
   };
 }
-
-// async function getInstructionToAi(context: SdkGenerationContext): Promise<string | undefined> {
-//   switch (context.sdkInfo.instructionType) {
-//     case "url":
-//     case "file":
-//       const c = await tryReadFileOrUrl(context.sdkInfo.instruction);
-//       if (c && c.content.length > 0) {
-//         return c.content;
-//       } else {
-//         return undefined;
-//       }
-//       break;
-//     case "text":
-//     case "mcp":
-//     default:
-//       return undefined;
-//   }
-// }
 
 export class SdkGenerationPlannerTool extends ToolBase<SdkGenerationPlannerToolParameters, string> {
   static TOOL_NAME = LmToolName.azure_sdk_generation_planner;
@@ -84,12 +69,9 @@ export class SdkGenerationPlannerTool extends ToolBase<SdkGenerationPlannerToolP
     token: CancellationToken,
   ): Promise<string | undefined> {
     const content = getSdkGenerationContext(options.input);
-    //const instruction = await getInstructionToAi(content);
-    // if (instruction === undefined) {
-    //   return `Not supported. No instruction found for ${content.language} SDK generation.`;
-    // }
 
-    const plan = `
+    let step = 1;
+    let plan = `
 You are an expert in Typespec language and will be tasked to generating Azure SDK from typespec project. Follow the steps in Workflow section below strictly to do the generation.
 
 # Instructions
@@ -112,19 +94,42 @@ You are an expert in Typespec language and will be tasked to generating Azure SD
 
 # Workflow
 
-## Step 1: Figure out the {local SDK repository root folder}
+`;
+
+    if (content.sdkInfo.preRequisites.length > 0) {
+      plan += `
+## Step ${step++}: Install pre-requisites
+
+${content.sdkInfo.preRequisites.map((item, index) => `${index}. ${item}`).join("\n")}
+
+`;
+    }
+
+    if (content.sdkInfo.mcpId) {
+      plan += `
+## Step ${step++}: Prepare AI tools for SDK generation 
+
+1. MUST call agent tool #${LmToolName.mcp_server_action} to start the MCP server '${content.sdkInfo.mcpId}' if it is not started yet.
+
+`;
+    }
+
+    plan += `## Step ${step++}: Figure out the {local SDK repository root folder}
 
 1. Ask user to provide the local root folder of SDK repository '${content.sdkInfo.name}'
 2. If the user provides the folder, use it as the root folder of the SDK repository.
 3. If the user does not provide the folder, work with user to git clone the repository '${content.sdkInfo.url}' to a local folder and use it as the root folder of the SDK repository.
 
-## Step 2: Compile the typespec code and fix any issues found
+## Step ${step++}: Compile the typespec code and fix any issues found
 
 1. MUST call agent tool #${LmToolName.tsp_compile_and_fix} whicl will compile the typespec code and fix issues automatically.
 
-## Step 3: Generate the SDK by following the detail instruction
+`;
 
-1. MUST call agent tool #${LmToolName.python_sdk_generation} to generate the SDK by following the detail instructions from the tool. The 'pythonSdkRepoRoot' is the local SDK repositry root folder figured out in the step 1 above.
+    plan += `
+## Step ${step++}: Generate the SDK by following the detail instruction
+
+1. MUST call agent tool #${LmToolName.python_sdk_adapter} to generate the SDK by following the detail instructions from the tool. The 'pythonSdkRepoRoot' is the local SDK repositry root folder figured out in the step 1 above.
 `;
 
     logger.debug(`Generated plan for SDK generation: \n${plan}`);
